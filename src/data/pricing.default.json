@@ -1,0 +1,97 @@
+{
+  "meta": {
+    "source": "default/mock pricing config",
+    "note": "Update using official public pricing before any external claims.",
+    "version": "1.0.0",
+    "updatedAt": "2025-01-15"
+  },
+  "models": {
+    "gemini_1_5_pro": {
+      "name": "Gemini 1.5 Pro",
+      "provider": "Google",
+      "input_cost_per_1k": 0.00125,
+      "output_cost_per_1k": 0.005,
+      "latency_class": 3,
+      "quality_score": 5,
+      "notes": "Higher quality reasoning"
+    },
+    "gemini_1_5_flash": {
+      "name": "Gemini 1.5 Flash",
+      "provider": "Google",
+      "input_cost_per_1k": 0.00035,
+      "output_cost_per_1k": 0.001,
+      "latency_class": 1,
+      "quality_score": 3,
+      "notes": "Best cost/latency for most apps"
+    },
+    "gpt_4o": {
+      "name": "GPT-4o",
+      "provider": "OpenAI",
+      "input_cost_per_1k": 0.005,
+      "output_cost_per_1k": 0.015,
+      "latency_class": 2,
+      "quality_score": 4,
+      "notes": "Cross-platform baseline"
+    },
+    "claude_sonnet": {
+      "name": "Claude 3.5 Sonnet",
+      "provider": "Anthropic",
+      "input_cost_per_1k": 0.003,
+      "output_cost_per_1k": 0.015,
+      "latency_class": 2,
+      "quality_score": 4,
+      "notes": "Strong writing + reasoning"
+    },
+    "llama3_self_hosted": {
+      "name": "Llama 3 70B (Self-hosted)",
+      "provider": "Meta",
+      "input_cost_per_1k": 0.0001,
+      "output_cost_per_1k": 0.0001,
+      "latency_class": 3,
+      "quality_score": 3,
+      "notes": "Infra-driven cost (GPU) dominates"
+    }
+  },
+  "embedding_models": {
+    "vertex_textembedding_004": {
+      "name": "Vertex AI Text Embedding 004",
+      "cost_per_1k_tokens": 0.0001,
+      "dimensions_supported": [768, 1024]
+    },
+    "openai_text_embedding_3": {
+      "name": "OpenAI Text Embedding 3",
+      "cost_per_1k_tokens": 0.00013,
+      "dimensions_supported": [1536]
+    }
+  },
+  "vector_db": {
+    "vertex_vector_search": {
+      "name": "Vertex AI Vector Search",
+      "storage_per_gb_monthly": 0.30,
+      "query_per_1k": 0.10,
+      "notes": "Managed index + ops"
+    },
+    "pinecone": {
+      "name": "Pinecone",
+      "storage_per_gb_monthly": 0.40,
+      "query_per_1k": 0.12,
+      "notes": "Approx placeholder"
+    }
+  },
+  "infra": {
+    "cloud_run": {
+      "name": "Cloud Run",
+      "overhead_pct_of_inference": 0.15,
+      "burst_multiplier": 1.30,
+      "steady_multiplier": 1.00
+    },
+    "gke": {
+      "name": "GKE Autopilot",
+      "overhead_pct_of_inference": 0.22,
+      "burst_multiplier": 1.10,
+      "steady_multiplier": 1.00
+    }
+  },
+  "networking": { "pct_of_total": 0.03 },
+  "observability": { "pct_of_total": 0.02 }
+}

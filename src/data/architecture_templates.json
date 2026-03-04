@@ -1,0 +1,137 @@
+{
+  "templates": [
+    {
+      "id": "rag_cloudrun",
+      "when": { "ragEnabled": true, "hosting": "cloud_run" },
+      "name": "GCP RAG on Cloud Run",
+      "nodes": [
+        { "id": "user", "label": "User", "type": "default" },
+        { "id": "ui", "label": "Web UI · Next.js", "type": "default" },
+        { "id": "lb", "label": "Cloud Load Balancing", "type": "compute" },
+        { "id": "run", "label": "Cloud Run · App/API", "type": "compute" },
+        { "id": "cache", "label": "Memorystore · Cache", "type": "data" },
+        { "id": "llm", "label": "Vertex AI · Gemini", "type": "vertex" },
+        { "id": "embed", "label": "Vertex AI Embeddings", "type": "vertex" },
+        { "id": "vsearch", "label": "Vertex AI Vector Search", "type": "vertex" },
+        { "id": "bq", "label": "BigQuery · Analytics", "type": "data" },
+        { "id": "logging", "label": "Cloud Logging & Monitoring", "type": "obs" }
+      ],
+      "edges": [
+        ["user", "ui"],
+        ["ui", "lb"],
+        ["lb", "run"],
+        ["run", "cache"],
+        ["run", "llm"],
+        ["run", "embed"],
+        ["embed", "vsearch"],
+        ["run", "vsearch"],
+        ["run", "bq"],
+        ["run", "logging"]
+      ],
+      "notes": [
+        "Cloud Run auto-scales the API layer based on traffic.",
+        "Memorystore provides semantic caching to reduce model calls.",
+        "Vertex AI Vector Search handles retrieval at scale.",
+        "BigQuery stores cost/quality telemetry (redacted PII).",
+        "Cloud Logging captures structured request traces."
+      ]
+    },
+    {
+      "id": "rag_gke",
+      "when": { "ragEnabled": true, "hosting": "gke" },
+      "name": "GCP RAG on GKE Autopilot",
+      "nodes": [
+        { "id": "user", "label": "User", "type": "default" },
+        { "id": "ui", "label": "Web UI · Next.js", "type": "default" },
+        { "id": "lb", "label": "Cloud Load Balancing", "type": "compute" },
+        { "id": "gke", "label": "GKE Autopilot", "type": "compute" },
+        { "id": "cache", "label": "Memorystore · Cache", "type": "data" },
+        { "id": "llm", "label": "Vertex AI · Gemini", "type": "vertex" },
+        { "id": "embed", "label": "Vertex AI Embeddings", "type": "vertex" },
+        { "id": "vsearch", "label": "Vertex AI Vector Search", "type": "vertex" },
+        { "id": "ar", "label": "Artifact Registry", "type": "compute" },
+        { "id": "bq", "label": "BigQuery · Analytics", "type": "data" },
+        { "id": "logging", "label": "Cloud Logging & Monitoring", "type": "obs" }
+      ],
+      "edges": [
+        ["user", "ui"],
+        ["ui", "lb"],
+        ["lb", "gke"],
+        ["gke", "cache"],
+        ["gke", "llm"],
+        ["gke", "embed"],
+        ["embed", "vsearch"],
+        ["gke", "vsearch"],
+        ["ar", "gke"],
+        ["gke", "bq"],
+        ["gke", "logging"]
+      ],
+      "notes": [
+        "GKE Autopilot for production-grade container orchestration.",
+        "Artifact Registry stores container images.",
+        "Better suited for complex multi-service deployments.",
+        "Higher infra overhead but tighter control over scaling."
+      ]
+    },
+    {
+      "id": "norag_cloudrun",
+      "when": { "ragEnabled": false, "hosting": "cloud_run" },
+      "name": "GCP Chat on Cloud Run (No RAG)",
+      "nodes": [
+        { "id": "user", "label": "User", "type": "default" },
+        { "id": "ui", "label": "Web UI · Next.js", "type": "default" },
+        { "id": "lb", "label": "Cloud Load Balancing", "type": "compute" },
+        { "id": "run", "label": "Cloud Run · App/API", "type": "compute" },
+        { "id": "cache", "label": "Memorystore · Cache", "type": "data" },
+        { "id": "llm", "label": "Vertex AI · Gemini", "type": "vertex" },
+        { "id": "bq", "label": "BigQuery · Analytics", "type": "data" },
+        { "id": "logging", "label": "Cloud Logging & Monitoring", "type": "obs" }
+      ],
+      "edges": [
+        ["user", "ui"],
+        ["ui", "lb"],
+        ["lb", "run"],
+        ["run", "cache"],
+        ["run", "llm"],
+        ["run", "bq"],
+        ["run", "logging"]
+      ],
+      "notes": [
+        "No retrieval layer — focus on caching + token control.",
+        "Cloud Run minimises ops overhead.",
+        "BigQuery enables cost and quality analytics."
+      ]
+    },
+    {
+      "id": "norag_gke",
+      "when": { "ragEnabled": false, "hosting": "gke" },
+      "name": "GCP Chat on GKE (No RAG)",
+      "nodes": [
+        { "id": "user", "label": "User", "type": "default" },
+        { "id": "ui", "label": "Web UI · Next.js", "type": "default" },
+        { "id": "lb", "label": "Cloud Load Balancing", "type": "compute" },
+        { "id": "gke", "label": "GKE Autopilot", "type": "compute" },
+        { "id": "cache", "label": "Memorystore · Cache", "type": "data" },
+        { "id": "llm", "label": "Vertex AI · Gemini", "type": "vertex" },
+        { "id": "ar", "label": "Artifact Registry", "type": "compute" },
+        { "id": "bq", "label": "BigQuery · Analytics", "type": "data" },
+        { "id": "logging", "label": "Cloud Logging & Monitoring", "type": "obs" }
+      ],
+      "edges": [
+        ["user", "ui"],
+        ["ui", "lb"],
+        ["lb", "gke"],
+        ["gke", "cache"],
+        ["gke", "llm"],
+        ["ar", "gke"],
+        ["gke", "bq"],
+        ["gke", "logging"]
+      ],
+      "notes": [
+        "GKE for production container orchestration without retrieval.",
+        "Artifact Registry manages container images.",
+        "BigQuery stores telemetry for cost/quality dashboards."
+      ]
+    }
+  ]
+}

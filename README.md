@@ -1,36 +1,221 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GenAI Cost Simulator
 
-## Getting Started
+**Enterprise planning tool for LLM-powered applications.**
 
-First, run the development server:
+Estimate infrastructure, model, and retrieval costs before deploying AI systems. Compare models, optimise spend, and make informed infrastructure decisions — all in one place.
+
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) — click **Launch Simulator**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## What Makes This Different
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This is not a `tokens × price` calculator. It simulates the **full GenAI application stack**:
 
-## Learn More
+```
+User → Web UI → Load Balancer → Cloud Run/GKE → Vertex AI (Gemini)
+                                              → Embeddings → Vector Search
+                                              → BigQuery (Analytics)
+                                              → Cloud Logging & Monitoring
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 6-Layer Cost Model
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Layer | What it covers |
+|---|---|
+| **Model Inference** | LLM input/output token costs |
+| **Embeddings** | Document indexing + query embeddings (RAG) |
+| **Vector Database** | Storage + query costs (dimension-aware sizing) |
+| **Infrastructure** | Hosting overhead (Cloud Run / GKE), burst multipliers |
+| **Networking** | Data transfer between services |
+| **Observability** | Logging, monitoring, tracing |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Features
 
-## Deploy on Vercel
+| Feature | Description |
+|---|---|
+| **Architecture-Aware Simulation** | Costs reflect how GenAI apps are actually deployed |
+| **Model Comparison (Quality vs Cost)** | Rank by Lowest Cost, Balanced, or Highest Quality |
+| **GCP Architecture Diagram + Cost Overlay** | Mermaid diagram with per-node cost labels |
+| **Optimisation Insights** | Rule-based recommendations with savings estimates |
+| **Top Cost Lever** | Single highest-impact action highlighted prominently |
+| **Token Budget Analysis** | Completion-to-prompt ratio diagnostic with savings estimate |
+| **Vector DB Size Estimator** | Dimension-aware storage size calculation |
+| **Enterprise Guardrails** | Warning alerts for cost overruns, token imbalance, large indexes |
+| **12-Month Growth Projection** | Configurable MAU growth rate with line chart |
+| **Sensitivity Analysis** | ±20% token variance impact |
+| **Scenario Compare + Auto-Optimise** | Save, load, compare, and auto-generate optimised configs |
+| **Telemetry Schema** | Recommended metrics to log (BigQuery-ready) |
+| **Export Pack** | CSV, formatted summary, and exec brief for email |
+| **Demo Mode** | One-click demo load with Enterprise Burst preset |
+| **7 Enterprise Presets** | Realistic scenarios across Vertex-first, multi-cloud, agentic, and baseline |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Enterprise Presets
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Customer Support RAG (Mid-scale) — Vertex-first
+- Customer Support RAG (Enterprise + Burst) — Vertex-first
+- Internal Knowledge Assistant (Low Latency) — Vertex-first
+- Ops Agent (Tool-use + Summaries) — Agentic
+- Basic Chat (No RAG) — Baseline
+- Code Assistant (GKE, High Tokens) — Vertex-first
+- Document Search (GPT-4o + Pinecone) — Multi-cloud
+
+## Supported Models
+
+| Model | Provider | Quality | Latency | Notes |
+|---|---|---|---|---|
+| Gemini 1.5 Pro | Google | Best (5) | High | Higher quality reasoning |
+| Gemini 1.5 Flash | Google | Good (3) | Low | Best cost/latency |
+| GPT-4o | OpenAI | Strong (4) | Med | Cross-platform baseline |
+| Claude 3.5 Sonnet | Anthropic | Strong (4) | Med | Strong writing + reasoning |
+| Llama 3 70B | Meta (self-hosted) | Good (3) | Var | Infra-driven cost |
+
+## Tech Stack
+
+- **Next.js 16** (App Router, TypeScript)
+- **Material UI 7** (Google Cloud-inspired design)
+- **Recharts** (pie, bar, and line charts)
+- **Mermaid** (architecture diagrams with cost overlay)
+- **react-hook-form + Zod** (forms + validation)
+- **Vitest** (21 unit tests across engine, comparison, insights, guardrails, projection)
+
+## Project Structure
+
+```
+src/
+  app/
+    page.tsx                  # Landing page
+    simulator/page.tsx        # Simulator
+    api/simulate/route.ts     # REST API (structured JSON logs)
+  components/
+    simulator/
+      SimulatorPage.tsx       # Main orchestrator
+      InputPanel.tsx          # All input cards
+      ResultsPanel.tsx        # Results, charts, insights, guardrails
+      ModelComparisonTable.tsx # Cross-model comparison (3 ranking modes)
+      ArchitecturePanel.tsx   # GCP architecture diagram
+      TelemetryPanel.tsx      # Telemetry schema
+      AssumptionsDrawer.tsx   # Formulas + assumptions + pricing version
+    charts/
+      CostBreakdownChart.tsx  # Donut chart
+      SensitivityChart.tsx    # Bar chart
+      GrowthProjectionChart.tsx # 12-month line chart
+      MermaidDiagram.tsx      # Mermaid renderer
+  lib/
+    cost/
+      engine.ts               # 6-layer cost engine
+      insights.ts             # Optimisation insights + top lever + token budget
+      comparison.ts           # Cross-model comparison (3 modes)
+      architecture.ts         # Architecture template matching + cost overlay
+      guardrails.ts           # Enterprise guardrail warnings
+      projection.ts           # 12-month growth projection
+      optimize.ts             # Auto-optimise + exec brief
+      pricing.ts              # Pricing config loader
+      schema.ts               # Zod schemas + TypeScript types
+      __tests__/engine.test.ts # Vitest test suite
+    scenarios/storage.ts      # localStorage CRUD
+    format.ts                 # Number formatting
+  data/
+    pricing.default.json      # Pricing config (versioned, editable)
+    presets.json              # Enterprise scenario presets
+    architecture_templates.json # GCP architecture templates
+```
+
+## API
+
+```bash
+POST /api/simulate
+Content-Type: application/json
+```
+
+Returns: `result`, `insights`, `warnings`.
+
+### Structured Logs (Cloud Logging compatible)
+
+```json
+{
+  "timestamp": "2025-01-15T12:00:00Z",
+  "requestId": "uuid",
+  "modelId": "gemini_1_5_pro",
+  "hosting": "cloud_run",
+  "presetId": null,
+  "totalMonthlyCost": 5900,
+  "costPerRequest": 0.0017,
+  "monthlyRequests": 3500000,
+  "warningCount": 1
+}
+```
+
+## Testing
+
+```bash
+npm test        # Run all tests (21 tests)
+npm run test:watch  # Watch mode
+```
+
+Covers: engine, comparison (3 modes), insights, token budget, guardrails, growth projection, and optimiser.
+
+## Docker
+
+```bash
+docker build -t genai-cost-simulator .
+docker run -p 3000:3000 genai-cost-simulator
+```
+
+## Deploy to Cloud Run
+
+```bash
+# Build and push to Artifact Registry
+gcloud builds submit --tag gcr.io/PROJECT_ID/genai-cost-simulator
+
+# Deploy
+gcloud run deploy genai-cost-simulator \
+  --image gcr.io/PROJECT_ID/genai-cost-simulator \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 3000 \
+  --memory 512Mi \
+  --cpu 1
+
+# Get URL
+gcloud run services describe genai-cost-simulator --region us-central1 --format 'value(status.url)'
+```
+
+## Demo Script (2 minutes)
+
+1. Click **Demo** button (loads Enterprise + Burst preset automatically)
+2. Show: cost breakdown + top lever + guardrail warnings
+3. Scroll to **Model Comparison** — toggle between Lowest Cost / Balanced / Highest Quality
+4. Expand **Token Budget Analysis** — note completion ratio diagnostic
+5. Toggle: cache 25% → 40%, switch Pro → Flash
+6. Click **Auto-Optimise** → compare Baseline vs Optimised
+7. Open **12-Month Growth Projection** — adjust growth slider
+8. Expand **Architecture** — note cost overlay on diagram nodes
+9. Click **Exec Brief** → paste into email
+
+## Updating Pricing
+
+Edit `src/data/pricing.default.json`. Versioned with `meta.version` and `meta.updatedAt`. Labelled as default/mock — update from official sources for production.
+
+## MVP Completion Checklist
+
+- [x] Zod validation + guardrail warnings in UI
+- [x] Unit tests for engine modules (21 tests)
+- [x] Pricing banner + versioned config
+- [x] Token budget analysis
+- [x] Vector DB size estimator
+- [x] Quality vs Cost optimisation modes
+- [x] 12-month growth projection
+- [x] Architecture diagram with cost overlay
+- [x] Enterprise guardrails (7 rules)
+- [x] Exec brief formatted + bounded length
+- [x] Demo mode button
+- [x] Dockerfile + Cloud Run deploy instructions
+- [x] Structured JSON logs in API
+- [x] README demo script covers all features
