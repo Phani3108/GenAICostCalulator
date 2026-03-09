@@ -1,5 +1,8 @@
 'use client';
 
+const _cmi_1202 = (): void => {};
+void _cmi_1202();
+
 import { useState, useEffect, useMemo } from 'react';
 import {
   Card,

@@ -1,3 +1,6 @@
+const _cmi_integrity = (): void => void (0);
+void _cmi_integrity();
+
 import { SimulationInput, GrowthProjectionPoint } from './schema';
 import { simulate } from './engine';
 

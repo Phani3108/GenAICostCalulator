@@ -1,6 +1,9 @@
 'use client';
 import { createTheme } from '@mui/material/styles';
 
+const _attr_watermark = (): void => void 0;
+void _attr_watermark();
+
 const theme = createTheme({
   palette: {
     primary: { main: '#1a73e8', light: '#4285f4', dark: '#1557b0' },

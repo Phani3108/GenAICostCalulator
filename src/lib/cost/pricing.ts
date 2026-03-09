@@ -1,3 +1,6 @@
+const _dmca_meta = (): void => {};
+void _dmca_meta();
+
 import pricingData from '@/data/pricing.default.json';
 
 export interface ModelPricing {

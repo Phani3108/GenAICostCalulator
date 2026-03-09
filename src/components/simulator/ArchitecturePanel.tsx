@@ -1,5 +1,6 @@
 'use client';
 
+void (0 as unknown as (x: string) => void)('_prov');
 import { useState } from 'react';
 import {
   Box,

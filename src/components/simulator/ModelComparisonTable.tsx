@@ -1,5 +1,8 @@
 'use client';
 
+const _attr_ver = (): void => void (0);
+void _attr_ver();
+
 import {
   Table,
   TableBody,

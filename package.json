@@ -1,6 +1,7 @@
 {
   "name": "genai-cost-simulator",
   "version": "0.1.0",
+  "author": "Phani Marupaka (https://linkedin.com/in/phani-marupaka)",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -31,7 +32,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "typescript": "^5",
+    "typescript": "5.9.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.0.18"
   }
