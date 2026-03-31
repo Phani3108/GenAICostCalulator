@@ -1,7 +1,7 @@
 [
   {
-    "id": "gcp_support_rag_mid",
-    "category": "Vertex-first",
+    "id": "support_rag_mid",
+    "category": "RAG",
     "name": "Customer Support RAG (Mid-scale)",
     "description": "Enterprise support assistant with retrieval on knowledge base. Balanced tokens, high retrieval rate.",
     "inputs": {
@@ -18,14 +18,14 @@
       "embeddingDimensions": 768,
       "trafficPattern": "steady",
       "hosting": "cloud_run",
-      "modelId": "gemini_1_5_pro",
+      "modelId": "claude_sonnet_45",
       "embeddingModelId": "vertex_textembedding_004",
       "vectorDbId": "vertex_vector_search"
     }
   },
   {
-    "id": "gcp_support_rag_enterprise_burst",
-    "category": "Vertex-first",
+    "id": "support_rag_enterprise_burst",
+    "category": "RAG",
     "name": "Customer Support RAG (Enterprise + Burst)",
     "description": "High burst traffic during business hours; infra overhead matters; caching is critical.",
     "inputs": {
@@ -42,14 +42,14 @@
       "embeddingDimensions": 768,
       "trafficPattern": "burst",
       "hosting": "cloud_run",
-      "modelId": "gemini_1_5_pro",
+      "modelId": "gemini_3_pro",
       "embeddingModelId": "vertex_textembedding_004",
       "vectorDbId": "vertex_vector_search"
     }
   },
   {
-    "id": "gcp_internal_kb_low_latency",
-    "category": "Vertex-first",
+    "id": "internal_kb_low_latency",
+    "category": "RAG",
     "name": "Internal Knowledge Assistant (Low Latency)",
     "description": "Internal Q&A. Lower tokens, high cache hits, frequent repeated questions.",
     "inputs": {
@@ -66,7 +66,7 @@
       "embeddingDimensions": 768,
       "trafficPattern": "steady",
       "hosting": "cloud_run",
-      "modelId": "gemini_1_5_flash",
+      "modelId": "gemini_25_flash",
       "embeddingModelId": "vertex_textembedding_004",
       "vectorDbId": "vertex_vector_search"
     }
@@ -90,7 +90,7 @@
       "embeddingDimensions": 768,
       "trafficPattern": "steady",
       "hosting": "cloud_run",
-      "modelId": "gemini_1_5_pro",
+      "modelId": "claude_sonnet_45",
       "embeddingModelId": "vertex_textembedding_004",
       "vectorDbId": "vertex_vector_search"
     }
@@ -114,14 +114,14 @@
       "embeddingDimensions": 768,
       "trafficPattern": "steady",
       "hosting": "cloud_run",
-      "modelId": "gemini_1_5_flash",
+      "modelId": "gpt_5_mini",
       "embeddingModelId": "vertex_textembedding_004",
       "vectorDbId": "vertex_vector_search"
     }
   },
   {
     "id": "code_assistant_gke",
-    "category": "Vertex-first",
+    "category": "Agentic",
     "name": "Code Assistant (GKE, High Tokens)",
     "description": "Developer-facing code assistant. Large context windows, high completion tokens.",
     "inputs": {
@@ -138,15 +138,15 @@
       "embeddingDimensions": 768,
       "trafficPattern": "steady",
       "hosting": "gke",
-      "modelId": "gemini_1_5_pro",
+      "modelId": "claude_opus_46",
       "embeddingModelId": "vertex_textembedding_004",
       "vectorDbId": "vertex_vector_search"
     }
   },
   {
-    "id": "doc_search_pinecone",
+    "id": "doc_search_openai_pinecone",
     "category": "Multi-cloud",
-    "name": "Document Search (GPT-4o + Pinecone)",
+    "name": "Document Search (GPT-5 + Pinecone)",
     "description": "Multi-cloud setup: OpenAI model + Pinecone vector DB. High document volume.",
     "inputs": {
       "monthlyActiveUsers": 50000,
@@ -162,9 +162,57 @@
       "embeddingDimensions": 1536,
       "trafficPattern": "burst",
       "hosting": "cloud_run",
-      "modelId": "gpt_4o",
-      "embeddingModelId": "openai_text_embedding_3",
+      "modelId": "gpt_5",
+      "embeddingModelId": "openai_text_embedding_3_large",
       "vectorDbId": "pinecone"
+    }
+  },
+  {
+    "id": "open_source_rag_llama4",
+    "category": "Open-source",
+    "name": "Self-hosted RAG (Llama 4 Scout)",
+    "description": "Cost-optimised open-source stack with Llama 4 Scout and pgvector. Good for predictable workloads.",
+    "inputs": {
+      "monthlyActiveUsers": 40000,
+      "requestsPerUser": 10,
+      "avgPromptTokens": 800,
+      "avgCompletionTokens": 400,
+      "cacheHitRate": 0.2,
+      "ragEnabled": true,
+      "retrievalRate": 0.65,
+      "documentsIndexed": 200000,
+      "avgDocTokens": 700,
+      "topK": 5,
+      "embeddingDimensions": 768,
+      "trafficPattern": "steady",
+      "hosting": "gke",
+      "modelId": "llama4_scout",
+      "embeddingModelId": "vertex_textembedding_004",
+      "vectorDbId": "pgvector"
+    }
+  },
+  {
+    "id": "flagship_research_agent",
+    "category": "Agentic",
+    "name": "Research Agent (Claude Opus 4.6)",
+    "description": "Mission-critical research assistant requiring top-tier reasoning. High tokens, low volume.",
+    "inputs": {
+      "monthlyActiveUsers": 3000,
+      "requestsPerUser": 20,
+      "avgPromptTokens": 2000,
+      "avgCompletionTokens": 1200,
+      "cacheHitRate": 0.05,
+      "ragEnabled": true,
+      "retrievalRate": 0.9,
+      "documentsIndexed": 800000,
+      "avgDocTokens": 1000,
+      "topK": 10,
+      "embeddingDimensions": 1024,
+      "trafficPattern": "steady",
+      "hosting": "gke",
+      "modelId": "claude_opus_46",
+      "embeddingModelId": "vertex_textembedding_004",
+      "vectorDbId": "vertex_vector_search"
     }
   }
 ]

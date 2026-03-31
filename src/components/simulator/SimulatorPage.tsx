@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import {
   AppBar,
@@ -18,6 +18,11 @@ import {
   IconButton,
   Tooltip,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
@@ -28,8 +33,10 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import HomeIcon from '@mui/icons-material/Home';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import ShareIcon from '@mui/icons-material/Share';
 import { SimulationInput, SimulationOutput, Scenario } from '@/lib/cost/schema';
 import { simulate } from '@/lib/cost/engine';
+import { getPricing } from '@/lib/cost/pricing';
 import { generateInsights, getTopLever } from '@/lib/cost/insights';
 import { compareModels } from '@/lib/cost/comparison';
 import { getArchitecture } from '@/lib/cost/architecture';
@@ -37,6 +44,7 @@ import { generateOptimizedScenario, generateExecBrief } from '@/lib/cost/optimiz
 import { generateWarnings } from '@/lib/cost/guardrails';
 import { classifyWorkload } from '@/lib/cost/classification';
 import { saveScenario } from '@/lib/scenarios/storage';
+import { encodeScenarioToUrl, decodeScenarioFromUrl } from '@/lib/url-state';
 import presets from '@/data/presets.json';
 import InputPanel from './InputPanel';
 import ResultsPanel from './ResultsPanel';
@@ -47,7 +55,7 @@ const DEFAULT_VALUES: SimulationInput = {
   requestsPerUser: 8,
   avgPromptTokens: 900,
   avgCompletionTokens: 450,
-  modelId: 'gemini_1_5_pro',
+  modelId: 'claude_sonnet_45',
   embeddingModelId: 'vertex_textembedding_004',
   vectorDbId: 'vertex_vector_search',
   ragEnabled: true,
@@ -63,13 +71,32 @@ const DEFAULT_VALUES: SimulationInput = {
 
 export default function SimulatorPage() {
   const methods = useForm<SimulationInput>({ defaultValues: DEFAULT_VALUES });
-  const values = methods.watch();
+  const liveValues = methods.watch();
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Debounce form values by 250 ms to avoid running 6+ simulations on every keystroke
+  const [values, setValues] = useState<SimulationInput>(DEFAULT_VALUES);
+  useEffect(() => {
+    const id = setTimeout(() => setValues(liveValues), 250);
+    return () => clearTimeout(id);
+  }, [liveValues]);
+
+  // Load scenario from URL on mount (shared links)
+  useEffect(() => {
+    const shared = decodeScenarioFromUrl();
+    if (shared) {
+      methods.reset(shared);
+      setSnackbar({ open: true, message: 'Shared scenario loaded from URL' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [compareMode, setCompareMode] = useState(false);
   const [compareScenario, setCompareScenario] = useState<Scenario | null>(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '' });
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveDialogName, setSaveDialogName] = useState('');
 
   let result: SimulationOutput | null = null;
   try {
@@ -118,7 +145,7 @@ export default function SimulatorPage() {
   );
 
   const handleDemo = useCallback(() => {
-    const demoPreset = presets.find((p) => p.id === 'gcp_support_rag_enterprise_burst');
+    const demoPreset = presets.find((p) => p.id === 'support_rag_enterprise_burst');
     if (demoPreset) {
       methods.reset(demoPreset.inputs as unknown as SimulationInput);
       setTimeout(() => {
@@ -130,11 +157,16 @@ export default function SimulatorPage() {
 
   const handleSave = useCallback(() => {
     if (!result) return;
-    const name = prompt('Scenario name:');
-    if (!name) return;
-    saveScenario({ name, inputs: values, output: result });
-    setSnackbar({ open: true, message: `Saved "${name}"` });
-  }, [values, result]);
+    setSaveDialogName('');
+    setSaveDialogOpen(true);
+  }, [result]);
+
+  const handleSaveConfirm = useCallback(() => {
+    if (!result || !saveDialogName.trim()) return;
+    saveScenario({ name: saveDialogName.trim(), inputs: values, output: result });
+    setSaveDialogOpen(false);
+    setSnackbar({ open: true, message: `Saved "${saveDialogName.trim()}"` });
+  }, [values, result, saveDialogName]);
 
   const handleAutoOptimize = useCallback(() => {
     if (!result) return;
@@ -154,14 +186,16 @@ export default function SimulatorPage() {
 
   const handleExportCsv = useCallback(() => {
     if (!result) return;
-    const header = ['Category', 'Label', 'Monthly Cost ($)', 'Share (%)'];
+    // Quote each field to handle commas/quotes in labels (RFC 4180)
+    const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
+    const header = ['Category', 'Label', 'Monthly Cost ($)', 'Share (%)'].map(q);
     const rows = result.breakdown.map((item) => [
-      item.category,
-      item.label,
+      q(item.category),
+      q(item.label),
       item.amount.toFixed(2),
       item.percentage.toFixed(1),
     ]);
-    rows.push(['TOTAL', '', result.totalMonthlyCost.toFixed(2), '100.0']);
+    rows.push([q('TOTAL'), q(''), result.totalMonthlyCost.toFixed(2), '100.0']);
     const csv = [header, ...rows].map((r) => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -174,12 +208,14 @@ export default function SimulatorPage() {
 
   const handleCopySummary = useCallback(() => {
     if (!result) return;
+    const pricing = getPricing();
+    const modelName = pricing.models[values.modelId]?.name ?? values.modelId;
     const lines = [
       '═══════════════════════════════════════',
       '  GenAI Cost Simulation Summary',
       '═══════════════════════════════════════',
       '',
-      `  Model:             ${values.modelId}`,
+      `  Model:             ${modelName}`,
       `  Hosting:           ${values.hosting}`,
       `  Monthly Requests:  ${result.monthlyRequests.toLocaleString()}`,
       `  Total Tokens:      ${result.totalTokens.toLocaleString()}`,
@@ -204,15 +240,56 @@ export default function SimulatorPage() {
         ),
       '═══════════════════════════════════════',
     ];
-    navigator.clipboard.writeText(lines.join('\n'));
-    setSnackbar({ open: true, message: 'Summary copied to clipboard' });
+    const text = lines.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setSnackbar({ open: true, message: 'Summary copied to clipboard' });
+    }).catch(() => {
+      // Fallback for HTTP or restricted contexts
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setSnackbar({ open: true, message: 'Summary copied to clipboard' });
+    });
   }, [result, values, insights]);
+
+  const handleShare = useCallback(() => {
+    const shareUrl = encodeScenarioToUrl(values);
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setSnackbar({ open: true, message: 'Share link copied to clipboard' });
+    }).catch(() => {
+      const el = document.createElement('textarea');
+      el.value = shareUrl;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setSnackbar({ open: true, message: 'Share link copied to clipboard' });
+    });
+  }, [values]);
 
   const handleCopyExecBrief = useCallback(() => {
     if (!result) return;
     const brief = generateExecBrief(values, result, insights);
-    navigator.clipboard.writeText(brief);
-    setSnackbar({ open: true, message: 'Exec brief copied' });
+    navigator.clipboard.writeText(brief).then(() => {
+      setSnackbar({ open: true, message: 'Exec brief copied' });
+    }).catch(() => {
+      const el = document.createElement('textarea');
+      el.value = brief;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setSnackbar({ open: true, message: 'Exec brief copied' });
+    });
   }, [values, result, insights]);
 
   return (
@@ -351,6 +428,18 @@ export default function SimulatorPage() {
             Exec Brief
           </Button>
         </Tooltip>
+
+        <Divider orientation="vertical" flexItem />
+
+        <Tooltip title="Copy shareable link for this scenario">
+          <Button
+            size="small"
+            startIcon={<ShareIcon />}
+            onClick={handleShare}
+          >
+            Share
+          </Button>
+        </Tooltip>
       </Box>
 
       {/* ── Main Content ── */}
@@ -404,6 +493,26 @@ export default function SimulatorPage() {
         onClose={() => setDrawerOpen(false)}
         result={result}
       />
+
+      {/* ── Save Dialog ── */}
+      <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Save Scenario</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Scenario name"
+            value={saveDialogName}
+            onChange={(e) => setSaveDialogName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSaveConfirm(); }}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleSaveConfirm} disabled={!saveDialogName.trim()}>Save</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Snackbar ── */}
       <Snackbar

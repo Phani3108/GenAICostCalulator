@@ -1,6 +1,7 @@
 import { SimulationInput, SimulationOutput, Insight } from './schema';
 import { getPricing } from './pricing';
 import { classifyWorkload } from './classification';
+import { compareModels } from './comparison';
 
 export function generateOptimizedScenario(
   input: SimulationInput,
@@ -11,12 +12,12 @@ export function generateOptimizedScenario(
   const inferencePct =
     output.breakdown.find((b) => b.category === 'Model Inference')?.percentage ?? 0;
 
-  if (
-    inferencePct > 50 &&
-    input.modelId !== 'gemini_1_5_flash' &&
-    input.modelId !== 'llama3_self_hosted'
-  ) {
-    optimized.modelId = 'gemini_1_5_flash';
+  if (inferencePct > 50) {
+    const ranked = compareModels(input, 'cost_first');
+    const cheapest = ranked[0];
+    if (cheapest && cheapest.modelId !== input.modelId) {
+      optimized.modelId = cheapest.modelId;
+    }
   }
 
   if (input.cacheHitRate < 0.2) {
