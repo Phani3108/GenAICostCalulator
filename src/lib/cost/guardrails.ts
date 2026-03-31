@@ -1,10 +1,25 @@
 import { SimulationInput, SimulationOutput, Warning } from './schema';
+import { getPricing } from './pricing';
 
 export function generateWarnings(
   input: SimulationInput,
   output: SimulationOutput,
 ): Warning[] {
   const warnings: Warning[] = [];
+  const pricing = getPricing();
+
+  // Embedding dimension mismatch — produces silently wrong storage costs
+  if (input.ragEnabled) {
+    const embModel = pricing.embedding_models[input.embeddingModelId];
+    if (embModel?.dimensions_supported && !embModel.dimensions_supported.includes(input.embeddingDimensions)) {
+      const supported = embModel.dimensions_supported.join(', ');
+      warnings.push({
+        level: 'error',
+        title: 'Embedding dimension mismatch',
+        message: `${embModel.name} supports dimensions [${supported}], but you have ${input.embeddingDimensions} selected. Vector storage cost is incorrect — change dimensions to ${embModel.dimensions_supported[0]}.`,
+      });
+    }
+  }
 
   if (output.totalMonthlyCost > 50_000) {
     warnings.push({

@@ -11,14 +11,14 @@ export function projectGrowth(
 ): GrowthProjectionPoint[] {
   const points: GrowthProjectionPoint[] = [];
 
-  for (let m = 0; m < months; m++) {
-    const factor = Math.pow(1 + monthlyGrowthPct / 100, m);
+  for (let m = 1; m <= months; m++) {
+    const factor = Math.pow(1 + monthlyGrowthPct / 100, m - 1);
     const scaledMau = Math.round(input.monthlyActiveUsers * factor);
     try {
       const result = simulate({ ...input, monthlyActiveUsers: scaledMau });
       points.push({
-        month: m + 1,
-        label: `M${m + 1}`,
+        month: m,
+        label: m === 1 ? 'Now' : `M${m}`,
         mau: scaledMau,
         monthlyCost: result.totalMonthlyCost,
       });

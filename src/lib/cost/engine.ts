@@ -51,8 +51,10 @@ export function simulate(input: SimulationInput): SimulationOutput {
       const bytesPerVector = dims * 4;
       const storageGb = (input.documentsIndexed * bytesPerVector) / 1024 ** 3;
       vectorStorageCost = storageGb * vecDb.storage_per_gb_monthly;
+      // Each query fetches topK vectors; cost scales with retrieval depth
+      const topK = input.topK || 4;
       vectorQueryCost =
-        ((monthlyRequests * input.retrievalRate) / 1000) * vecDb.query_per_1k;
+        ((monthlyRequests * input.retrievalRate * topK) / 1000) * vecDb.query_per_1k;
     }
 
     vectorRetrievalCost = queryEmbeddingCost + vectorStorageCost + vectorQueryCost;
@@ -145,7 +147,7 @@ export function simulate(input: SimulationInput): SimulationOutput {
   if (input.ragEnabled) {
     explanation.push(
       `Embedding indexing (docs amortised/12) = $${embeddingIndexingCost.toFixed(2)}`,
-      `Vector retrieval (query embeddings + storage ${f((input.documentsIndexed * (input.embeddingDimensions || 768) * 4) / 1024 ** 3)} GB + ${f(monthlyRequests * input.retrievalRate)} queries) = $${vectorRetrievalCost.toFixed(2)}`,
+      `Vector retrieval (query embeddings + storage ${f((input.documentsIndexed * (input.embeddingDimensions || 768) * 4) / 1024 ** 3)} GB + ${f(monthlyRequests * input.retrievalRate)} queries × topK ${input.topK || 4}) = $${vectorRetrievalCost.toFixed(2)}`,
     );
   }
 

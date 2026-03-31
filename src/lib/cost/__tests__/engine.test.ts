@@ -1,12 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { simulate } from '../engine';
 import { compareModels } from '../comparison';
+import { getPricing } from '../pricing';
 import { generateInsights, getTopLever, analyzeTokenBudget } from '../insights';
 import { generateWarnings } from '../guardrails';
 import { projectGrowth } from '../projection';
 import { generateOptimizedScenario } from '../optimize';
 import { classifyWorkload } from '../classification';
 import { SimulationInput } from '../schema';
+
+// Current-generation model IDs (2025-2026)
+const CHEAP_MODEL = 'gemini_25_flash';     // fastest / cheapest
+const MID_MODEL   = 'claude_sonnet_45';    // mid-tier
+const TOP_MODEL   = 'claude_opus_46';      // flagship
 
 const baselineNoRag: SimulationInput = {
   monthlyActiveUsers: 100000,
@@ -22,7 +28,7 @@ const baselineNoRag: SimulationInput = {
   embeddingDimensions: 768,
   trafficPattern: 'steady',
   hosting: 'cloud_run',
-  modelId: 'gemini_1_5_flash',
+  modelId: CHEAP_MODEL,
   embeddingModelId: 'vertex_textembedding_004',
   vectorDbId: 'vertex_vector_search',
 };
@@ -41,7 +47,7 @@ const enterpriseBurstRag: SimulationInput = {
   embeddingDimensions: 768,
   trafficPattern: 'burst',
   hosting: 'cloud_run',
-  modelId: 'gemini_1_5_pro',
+  modelId: MID_MODEL,
   embeddingModelId: 'vertex_textembedding_004',
   vectorDbId: 'vertex_vector_search',
 };
@@ -60,7 +66,7 @@ const agentWorkflow: SimulationInput = {
   embeddingDimensions: 768,
   trafficPattern: 'steady',
   hosting: 'cloud_run',
-  modelId: 'gemini_1_5_pro',
+  modelId: MID_MODEL,
   embeddingModelId: 'vertex_textembedding_004',
   vectorDbId: 'vertex_vector_search',
 };
@@ -116,12 +122,21 @@ describe('Cost Engine', () => {
     expect(result.explanation.length).toBeGreaterThan(3);
     expect(result.explanation.some((s) => s.includes('Monthly requests'))).toBe(true);
   });
+
+  it('higher topK increases vector query cost', () => {
+    const lowK = simulate({ ...agentWorkflow, topK: 1 });
+    const highK = simulate({ ...agentWorkflow, topK: 10 });
+    const lowKVec = lowK.breakdown.find((b) => b.category === 'Vector Retrieval')!;
+    const highKVec = highK.breakdown.find((b) => b.category === 'Vector Retrieval')!;
+    expect(highKVec.amount).toBeGreaterThan(lowKVec.amount);
+  });
 });
 
 describe('Model Comparison', () => {
   it('returns entries for all models', () => {
     const entries = compareModels(baselineNoRag);
-    expect(entries.length).toBe(5);
+    const pricing = getPricing();
+    expect(entries.length).toBe(Object.keys(pricing.models).length);
   });
 
   it('cost_first ranks cheapest first', () => {
@@ -137,7 +152,7 @@ describe('Model Comparison', () => {
   it('marks selected model correctly', () => {
     const entries = compareModels(baselineNoRag);
     const selected = entries.find((e) => e.isSelected);
-    expect(selected?.modelId).toBe('gemini_1_5_flash');
+    expect(selected?.modelId).toBe(CHEAP_MODEL);
   });
 });
 
@@ -171,7 +186,6 @@ describe('Token Budget Analysis', () => {
   });
 
   it('reports normal ratio for balanced inputs', () => {
-    const result = simulate(baselineNoRag);
     const input = { ...baselineNoRag, avgCompletionTokens: 150 };
     const balancedResult = simulate(input);
     const budget = analyzeTokenBudget(input, balancedResult);
@@ -199,6 +213,18 @@ describe('Guardrails', () => {
     const warnings = generateWarnings(input, result);
     expect(warnings.some((w) => w.title.includes('Completion'))).toBe(true);
   });
+
+  it('warns on embedding dimension mismatch', () => {
+    // openai_text_embedding_3_large supports [256, 1024, 1536, 3072] — not 768
+    const input: SimulationInput = {
+      ...enterpriseBurstRag,
+      embeddingModelId: 'openai_text_embedding_3_large',
+      embeddingDimensions: 768,
+    };
+    const result = simulate(input);
+    const warnings = generateWarnings(input, result);
+    expect(warnings.some((w) => w.title.includes('dimension mismatch'))).toBe(true);
+  });
 });
 
 describe('Growth Projection', () => {
@@ -222,8 +248,10 @@ describe('Growth Projection', () => {
 
 describe('Optimizer', () => {
   it('generates an optimised scenario', () => {
-    const result = simulate(enterpriseBurstRag);
-    const optimised = generateOptimizedScenario(enterpriseBurstRag, result);
+    // Use a premium model so the optimizer can switch to a cheaper one
+    const premiumInput: SimulationInput = { ...enterpriseBurstRag, modelId: TOP_MODEL };
+    const result = simulate(premiumInput);
+    const optimised = generateOptimizedScenario(premiumInput, result);
     const optimisedResult = simulate(optimised);
     expect(optimisedResult.totalMonthlyCost).toBeLessThan(result.totalMonthlyCost);
   });

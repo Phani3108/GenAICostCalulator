@@ -1,55 +1,127 @@
 {
   "meta": {
-    "source": "default/mock pricing config",
-    "note": "Update using official public pricing before any external claims.",
-    "version": "1.0.0",
-    "updatedAt": "2025-01-15"
+    "source": "Public pricing pages — OpenAI, Anthropic, Google Cloud, Meta, Mistral, DeepSeek, Alibaba, Zhipu AI",
+    "note": "Flagship and current-generation models as of early 2026. Self-hosted prices are infra-cost estimates only. Verify all prices with provider before external claims.",
+    "version": "3.0.0",
+    "updatedAt": "2026-03-31"
   },
   "models": {
-    "gemini_1_5_pro": {
-      "name": "Gemini 1.5 Pro",
-      "provider": "Google",
-      "input_cost_per_1k": 0.00125,
-      "output_cost_per_1k": 0.005,
+    "gpt_5": {
+      "name": "GPT-5",
+      "provider": "OpenAI",
+      "input_cost_per_1k": 0.015,
+      "output_cost_per_1k": 0.060,
       "latency_class": 3,
       "quality_score": 5,
-      "notes": "Higher quality reasoning"
+      "notes": "OpenAI flagship — strongest reasoning, coding, and multimodal"
     },
-    "gemini_1_5_flash": {
-      "name": "Gemini 1.5 Flash",
-      "provider": "Google",
-      "input_cost_per_1k": 0.00035,
-      "output_cost_per_1k": 0.001,
+    "gpt_5_mini": {
+      "name": "GPT-5 Mini",
+      "provider": "OpenAI",
+      "input_cost_per_1k": 0.0004,
+      "output_cost_per_1k": 0.0016,
       "latency_class": 1,
       "quality_score": 3,
-      "notes": "Best cost/latency for most apps"
+      "notes": "Best-value OpenAI model — classification, extraction, routing"
     },
-    "gpt_4o": {
-      "name": "GPT-4o",
-      "provider": "OpenAI",
-      "input_cost_per_1k": 0.005,
-      "output_cost_per_1k": 0.015,
-      "latency_class": 2,
-      "quality_score": 4,
-      "notes": "Cross-platform baseline"
+    "claude_opus_46": {
+      "name": "Claude Opus 4.6",
+      "provider": "Anthropic",
+      "input_cost_per_1k": 0.015,
+      "output_cost_per_1k": 0.075,
+      "latency_class": 3,
+      "quality_score": 5,
+      "notes": "Anthropic flagship — research-grade reasoning and writing"
     },
-    "claude_sonnet": {
-      "name": "Claude 3.5 Sonnet",
+    "claude_sonnet_45": {
+      "name": "Claude Sonnet 4.5",
       "provider": "Anthropic",
       "input_cost_per_1k": 0.003,
       "output_cost_per_1k": 0.015,
       "latency_class": 2,
       "quality_score": 4,
-      "notes": "Strong writing + reasoning"
+      "notes": "Strong mid-tier — coding, analysis, tool use"
     },
-    "llama3_self_hosted": {
-      "name": "Llama 3 70B (Self-hosted)",
-      "provider": "Meta",
-      "input_cost_per_1k": 0.0001,
-      "output_cost_per_1k": 0.0001,
-      "latency_class": 3,
+    "claude_haiku_45": {
+      "name": "Claude Haiku 4.5",
+      "provider": "Anthropic",
+      "input_cost_per_1k": 0.001,
+      "output_cost_per_1k": 0.005,
+      "latency_class": 1,
       "quality_score": 3,
-      "notes": "Infra-driven cost (GPU) dominates"
+      "notes": "Fast and affordable — high-volume, low-complexity workloads"
+    },
+    "gemini_3_pro": {
+      "name": "Gemini 3 Pro",
+      "provider": "Google",
+      "input_cost_per_1k": 0.007,
+      "output_cost_per_1k": 0.021,
+      "latency_class": 3,
+      "quality_score": 5,
+      "notes": "Google flagship via Vertex AI / AI Studio — strong on long context"
+    },
+    "gemini_25_flash": {
+      "name": "Gemini 2.5 Flash",
+      "provider": "Google",
+      "input_cost_per_1k": 0.00015,
+      "output_cost_per_1k": 0.0006,
+      "latency_class": 1,
+      "quality_score": 3,
+      "notes": "Best cost/latency on Google stack — batch transforms, extraction"
+    },
+    "llama4_scout": {
+      "name": "Llama 4 Scout (Self-hosted, ~109B MoE)",
+      "provider": "Meta",
+      "input_cost_per_1k": 0.0002,
+      "output_cost_per_1k": 0.0002,
+      "latency_class": 2,
+      "quality_score": 3,
+      "notes": "Infra-driven cost estimate (H100 serving). 10M-token context, multimodal"
+    },
+    "llama4_maverick": {
+      "name": "Llama 4 Maverick (Self-hosted, ~400B MoE)",
+      "provider": "Meta",
+      "input_cost_per_1k": 0.0008,
+      "output_cost_per_1k": 0.0008,
+      "latency_class": 3,
+      "quality_score": 4,
+      "notes": "Infra-driven cost estimate. Higher quality than Scout; GPU-heavy"
+    },
+    "mistral_large_3": {
+      "name": "Mistral Large 3",
+      "provider": "Mistral",
+      "input_cost_per_1k": 0.002,
+      "output_cost_per_1k": 0.006,
+      "latency_class": 2,
+      "quality_score": 4,
+      "notes": "41B active MoE — leading open-source-friendly reasoning model"
+    },
+    "deepseek_v3": {
+      "name": "DeepSeek V3-0324",
+      "provider": "DeepSeek",
+      "input_cost_per_1k": 0.00027,
+      "output_cost_per_1k": 0.0011,
+      "latency_class": 2,
+      "quality_score": 4,
+      "notes": "Open-weights; competitive with GPT-4.5-class on math and coding"
+    },
+    "qwen35": {
+      "name": "Qwen3.5 397B (A17B active)",
+      "provider": "Alibaba",
+      "input_cost_per_1k": 0.0005,
+      "output_cost_per_1k": 0.002,
+      "latency_class": 2,
+      "quality_score": 4,
+      "notes": "Open-source MoE — strong on agentic and long-context workloads"
+    },
+    "glm5": {
+      "name": "GLM-5",
+      "provider": "Zhipu AI",
+      "input_cost_per_1k": 0.0003,
+      "output_cost_per_1k": 0.001,
+      "latency_class": 2,
+      "quality_score": 3,
+      "notes": "Open-source contender — good for multilingual and long-context tasks"
     }
   },
   "embedding_models": {
@@ -58,10 +130,15 @@
       "cost_per_1k_tokens": 0.0001,
       "dimensions_supported": [768, 1024]
     },
-    "openai_text_embedding_3": {
-      "name": "OpenAI Text Embedding 3",
+    "openai_text_embedding_3_small": {
+      "name": "OpenAI Text Embedding 3 Small",
+      "cost_per_1k_tokens": 0.00002,
+      "dimensions_supported": [512, 1536]
+    },
+    "openai_text_embedding_3_large": {
+      "name": "OpenAI Text Embedding 3 Large",
       "cost_per_1k_tokens": 0.00013,
-      "dimensions_supported": [1536]
+      "dimensions_supported": [256, 1024, 1536, 3072]
     }
   },
   "vector_db": {
@@ -69,13 +146,19 @@
       "name": "Vertex AI Vector Search",
       "storage_per_gb_monthly": 0.30,
       "query_per_1k": 0.10,
-      "notes": "Managed index + ops"
+      "notes": "Managed index + ops on Google Cloud"
     },
     "pinecone": {
-      "name": "Pinecone",
-      "storage_per_gb_monthly": 0.40,
-      "query_per_1k": 0.12,
-      "notes": "Approx placeholder"
+      "name": "Pinecone Serverless",
+      "storage_per_gb_monthly": 0.033,
+      "query_per_1k": 0.10,
+      "notes": "Serverless — pay-per-use, storage per GB of raw vectors"
+    },
+    "pgvector": {
+      "name": "pgvector (self-hosted)",
+      "storage_per_gb_monthly": 0.10,
+      "query_per_1k": 0.02,
+      "notes": "Postgres extension — cost is compute + ops overhead estimate"
     }
   },
   "infra": {
