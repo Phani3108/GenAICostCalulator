@@ -56,6 +56,15 @@ import {
   Scenario,
   Warning,
   OptimizationMode,
+  SimulatorMode,
+  AgentCOGS,
+  UnitEconomics,
+  PricingModelComparison,
+  PaybackResult,
+  BreakEvenResult,
+  ChurnSensitivityPoint,
+  PricingRecommendation,
+  AgentEconomicsInput,
 } from '@/lib/cost/schema';
 import { analyzeTokenBudget } from '@/lib/cost/insights';
 import { projectGrowth } from '@/lib/cost/projection';
@@ -188,6 +197,7 @@ function sortEntries(
 /* ───── main ───── */
 
 interface ResultsPanelProps {
+  mode: SimulatorMode;
   input: SimulationInput;
   result: SimulationOutput | null;
   insights: Insight[];
@@ -201,9 +211,21 @@ interface ResultsPanelProps {
   compareMode: boolean;
   onLoadCompare: (scenario: Scenario) => void;
   onAutoOptimize: () => void;
+  /* Agent Economics props */
+  agentCogs?: AgentCOGS | null;
+  agentUnitEcon?: UnitEconomics | null;
+  agentPricingComparison?: PricingModelComparison[];
+  agentPayback?: PaybackResult | null;
+  agentBreakEven?: BreakEvenResult | null;
+  agentChurnData?: ChurnSensitivityPoint[];
+  agentPricingRec?: PricingRecommendation | null;
+  agentBusinessWarnings?: Warning[];
+  agentInput?: AgentEconomicsInput;
+  onCopyPriceChainExport?: () => void;
 }
 
 export default function ResultsPanel({
+  mode,
   input,
   result,
   insights,
@@ -217,6 +239,16 @@ export default function ResultsPanel({
   compareMode,
   onLoadCompare,
   onAutoOptimize,
+  agentCogs,
+  agentUnitEcon,
+  agentPricingComparison,
+  agentPayback,
+  agentBreakEven,
+  agentChurnData,
+  agentPricingRec,
+  agentBusinessWarnings,
+  agentInput,
+  onCopyPriceChainExport,
 }: ResultsPanelProps) {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [optimizationMode, setOptimizationMode] =
@@ -256,6 +288,24 @@ export default function ResultsPanel({
           <Skeleton key={i} variant="rounded" height={120} />
         ))}
       </Box>
+    );
+  }
+
+  /* ═══════ Agent Economics view ═══════ */
+  if (mode === 'agent_economics') {
+    return (
+      <AgentEconomicsResults
+        agentCogs={agentCogs ?? null}
+        agentUnitEcon={agentUnitEcon ?? null}
+        agentPricingComparison={agentPricingComparison ?? []}
+        agentPayback={agentPayback ?? null}
+        agentBreakEven={agentBreakEven ?? null}
+        agentChurnData={agentChurnData ?? []}
+        agentPricingRec={agentPricingRec ?? null}
+        agentBusinessWarnings={agentBusinessWarnings ?? []}
+        agentInput={agentInput}
+        onCopyPriceChainExport={onCopyPriceChainExport}
+      />
     );
   }
 
@@ -820,6 +870,319 @@ export default function ResultsPanel({
       >
         <TelemetryPanel input={input} output={result} />
       </Section>
+    </Box>
+  );
+}
+
+/* ───── Agent Economics Results ───── */
+
+function AgentEconomicsResults({
+  agentCogs,
+  agentUnitEcon,
+  agentPricingComparison,
+  agentPayback,
+  agentBreakEven,
+  agentChurnData,
+  agentPricingRec,
+  agentBusinessWarnings,
+  agentInput,
+  onCopyPriceChainExport,
+}: {
+  agentCogs: AgentCOGS | null;
+  agentUnitEcon: UnitEconomics | null;
+  agentPricingComparison: PricingModelComparison[];
+  agentPayback: PaybackResult | null;
+  agentBreakEven: BreakEvenResult | null;
+  agentChurnData: ChurnSensitivityPoint[];
+  agentPricingRec: PricingRecommendation | null;
+  agentBusinessWarnings: Warning[];
+  agentInput?: AgentEconomicsInput;
+  onCopyPriceChainExport?: () => void;
+}) {
+  const PURPLE = '#9334e6';
+  const GREEN = '#34a853';
+  const RED = '#ea4335';
+  const BLUE = '#1a73e8';
+  const YELLOW = '#fbbc04';
+
+  const marginColor = (pct: number) => pct >= 60 ? GREEN : pct >= 30 ? YELLOW : RED;
+  const healthColor = (h?: string) => h === 'healthy' ? GREEN : h === 'acceptable' ? BLUE : h === 'risky' ? YELLOW : RED;
+
+  if (!agentCogs || !agentUnitEcon) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} variant="rounded" height={120} />
+        ))}
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+      {/* ── Business Warnings ── */}
+      {agentBusinessWarnings.length > 0 && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          {agentBusinessWarnings.map((w, i) => (
+            <Alert
+              key={i}
+              severity={w.level === 'error' ? 'error' : w.level === 'warning' ? 'warning' : 'info'}
+              icon={w.level === 'error' ? undefined : <WarningAmberIcon fontSize="small" />}
+              sx={{ '& .MuiAlert-message': { py: 0.25 } }}
+            >
+              <AlertTitle sx={{ fontSize: '0.85rem', mb: 0 }}>{w.title}</AlertTitle>
+              <Typography variant="caption">{w.message}</Typography>
+            </Alert>
+          ))}
+        </Box>
+      )}
+
+      {/* ── Unit Economics Summary ── */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr 1fr', sm: '1fr 1fr 1fr', md: 'repeat(5, 1fr)' },
+          gap: 2,
+        }}
+      >
+        <MetricCard label="Monthly Revenue" value={formatCurrency(agentUnitEcon.monthlyRevenue)} color={BLUE} large />
+        <MetricCard label="Monthly COGS" value={formatCurrency(agentUnitEcon.monthlyCogs)} color={RED} />
+        <MetricCard label="Gross Margin" value={formatCurrency(agentUnitEcon.grossMargin)} color={marginColor(agentUnitEcon.grossMarginPct)} />
+        <MetricCard label="Margin %" value={`${agentUnitEcon.grossMarginPct.toFixed(1)}%`} color={marginColor(agentUnitEcon.grossMarginPct)} large />
+        <MetricCard label="Payback" value={agentPayback ? `${agentPayback.months.toFixed(1)} mo` : '—'} color={healthColor(agentPayback?.health)} />
+      </Box>
+
+      {/* ── Per-Unit Metrics ── */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
+        <MetricCard label="Revenue / Task" value={`$${agentUnitEcon.revenuePerTask.toFixed(4)}`} color={BLUE} />
+        <MetricCard label="COGS / Task" value={`$${agentUnitEcon.cogsPerTask.toFixed(4)}`} color={RED} />
+        <MetricCard label="Margin / Task" value={`$${agentUnitEcon.marginPerTask.toFixed(4)}`} color={marginColor(agentUnitEcon.grossMarginPct)} />
+        <MetricCard label="Platform Tax" value={formatCurrency(agentUnitEcon.platformTaxAmount)} color={PURPLE} />
+      </Box>
+
+      {/* ── Chain Cost Breakdown ── */}
+      <Section icon={<BarChartIcon color="primary" fontSize="small" />} title="Chain Cost Breakdown">
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Step</TableCell>
+                <TableCell>Model</TableCell>
+                <TableCell align="right">Calls/mo</TableCell>
+                <TableCell align="right">Inference $/mo</TableCell>
+                <TableCell align="right">% of COGS</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {agentCogs.chainBreakdown.map((step, i) => (
+                <TableRow key={i} hover>
+                  <TableCell>
+                    <Typography variant="body2" fontWeight={500}>{step.name}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="caption">{step.modelName}</Typography>
+                  </TableCell>
+                  <TableCell align="right">{formatNumber(step.callsPerMonth)}</TableCell>
+                  <TableCell align="right">${step.inferenceCost.toFixed(2)}</TableCell>
+                  <TableCell align="right">
+                    <Chip label={`${step.percentageOfCogs.toFixed(1)}%`} size="small" variant="outlined" />
+                  </TableCell>
+                </TableRow>
+              ))}
+              {/* Shared cost rows */}
+              {agentCogs.infraCost > 0 && (
+                <TableRow hover>
+                  <TableCell colSpan={3}><Typography variant="body2" color="text.secondary">Infrastructure</Typography></TableCell>
+                  <TableCell align="right">${agentCogs.infraCost.toFixed(2)}</TableCell>
+                  <TableCell align="right"><Chip label={`${((agentCogs.infraCost / agentCogs.totalMonthlyCost) * 100).toFixed(1)}%`} size="small" variant="outlined" /></TableCell>
+                </TableRow>
+              )}
+              {(agentCogs.embeddingIndexingCost + agentCogs.vectorRetrievalCost) > 0 && (
+                <TableRow hover>
+                  <TableCell colSpan={3}><Typography variant="body2" color="text.secondary">RAG (Embeddings + Vector DB)</Typography></TableCell>
+                  <TableCell align="right">${(agentCogs.embeddingIndexingCost + agentCogs.vectorRetrievalCost).toFixed(2)}</TableCell>
+                  <TableCell align="right"><Chip label={`${(((agentCogs.embeddingIndexingCost + agentCogs.vectorRetrievalCost) / agentCogs.totalMonthlyCost) * 100).toFixed(1)}%`} size="small" variant="outlined" /></TableCell>
+                </TableRow>
+              )}
+              <TableRow>
+                <TableCell colSpan={3}><Typography fontWeight={700}>Total COGS</Typography></TableCell>
+                <TableCell align="right"><Typography fontWeight={700}>${agentCogs.totalMonthlyCost.toFixed(2)}</Typography></TableCell>
+                <TableCell align="right"><Chip label="100%" size="small" color="primary" /></TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <Box sx={{ mt: 1.5 }}>
+          {agentCogs.explanation.map((line, i) => (
+            <Typography key={i} variant="caption" color="text.secondary" display="block">{line}</Typography>
+          ))}
+        </Box>
+      </Section>
+
+      {/* ── Pricing Model Comparison ── */}
+      {agentPricingComparison.length > 0 && (
+        <Section icon={<CompareArrowsIcon color="primary" fontSize="small" />} title="Pricing Model Comparison">
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Model</TableCell>
+                  <TableCell align="right">Revenue/mo</TableCell>
+                  <TableCell align="right">Margin/mo</TableCell>
+                  <TableCell align="right">Margin %</TableCell>
+                  <TableCell align="right">Break-Even</TableCell>
+                  <TableCell align="right">Payback</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {agentPricingComparison.map((pm) => (
+                  <TableRow key={pm.pricingModel} hover sx={pm.isSelected ? { bgcolor: '#e8f0fe' } : undefined}>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Typography variant="body2" fontWeight={pm.isSelected ? 700 : 400}>
+                          {pm.label}
+                        </Typography>
+                        {pm.isSelected && <Chip label="current" size="small" color="primary" sx={{ height: 18, fontSize: 10 }} />}
+                      </Box>
+                    </TableCell>
+                    <TableCell align="right">{formatCurrency(pm.monthlyRevenue)}</TableCell>
+                    <TableCell align="right" sx={{ color: pm.grossMargin >= 0 ? GREEN : RED }}>
+                      {formatCurrency(pm.grossMargin)}
+                    </TableCell>
+                    <TableCell align="right">
+                      <Chip
+                        label={`${pm.grossMarginPct.toFixed(1)}%`}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          bgcolor: pm.grossMarginPct >= 60 ? '#e6f4ea' : pm.grossMarginPct >= 30 ? '#fef7e0' : '#fce8e6',
+                          color: pm.grossMarginPct >= 60 ? GREEN : pm.grossMarginPct >= 30 ? '#e37400' : RED,
+                          fontWeight: 600,
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">{pm.breakEvenCustomers === Infinity ? '∞' : formatNumber(pm.breakEvenCustomers)}</TableCell>
+                    <TableCell align="right">{pm.paybackMonths === Infinity ? '∞' : `${pm.paybackMonths.toFixed(1)} mo`}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Section>
+      )}
+
+      {/* ── Break-Even ── */}
+      {agentBreakEven && (
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+          <Card sx={{ borderTop: `3px solid ${BLUE}` }}>
+            <CardContent>
+              <Typography variant="caption" color="text.secondary">Break-Even Customers</Typography>
+              <Typography variant="h5" fontWeight={700} color="primary">
+                {agentBreakEven.customers === Infinity ? '∞' : formatNumber(agentBreakEven.customers)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Fixed costs: {formatCurrency(agentBreakEven.monthlyFixedCosts)}/mo &middot; Contribution: ${agentBreakEven.contributionPerCustomer.toFixed(2)}/customer
+              </Typography>
+            </CardContent>
+          </Card>
+          {agentPayback && (
+            <Card sx={{ borderTop: `3px solid ${healthColor(agentPayback.health)}` }}>
+              <CardContent>
+                <Typography variant="caption" color="text.secondary">CAC Payback Period</Typography>
+                <Typography variant="h5" fontWeight={700} sx={{ color: healthColor(agentPayback.health) }}>
+                  {agentPayback.months === Infinity ? '∞' : `${agentPayback.months.toFixed(1)} months`}
+                </Typography>
+                <Chip label={agentPayback.health} size="small" sx={{ mt: 0.5, height: 20, fontSize: 11, bgcolor: healthColor(agentPayback.health), color: '#fff' }} />
+              </CardContent>
+            </Card>
+          )}
+        </Box>
+      )}
+
+      {/* ── Churn Sensitivity ── */}
+      {agentChurnData.length > 0 && (
+        <Section icon={<TimelineIcon color="primary" fontSize="small" />} title="Churn Sensitivity" defaultOpen={false}>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Churn Rate</TableCell>
+                  <TableCell align="right">Steady-State</TableCell>
+                  <TableCell align="right">Revenue/mo</TableCell>
+                  <TableCell align="right">Margin %</TableCell>
+                  <TableCell align="right">Payback</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {agentChurnData.map((pt, i) => {
+                  const isCurrent = Math.abs(pt.churnMultiplier - 1.0) < 0.01;
+                  return (
+                    <TableRow key={i} hover sx={isCurrent ? { bgcolor: '#e8f0fe' } : undefined}>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={isCurrent ? 700 : 400}>
+                          {pt.churnRatePct.toFixed(1)}%
+                          {isCurrent && <Chip label="current" size="small" color="primary" sx={{ ml: 0.5, height: 18, fontSize: 10 }} />}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">{formatNumber(pt.steadyStateCustomers)}</TableCell>
+                      <TableCell align="right">{formatCurrency(pt.monthlyRevenue)}</TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" sx={{ color: marginColor(pt.grossMarginPct) }}>
+                          {pt.grossMarginPct.toFixed(1)}%
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">{pt.paybackMonths === Infinity ? '∞' : `${pt.paybackMonths.toFixed(1)} mo`}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Section>
+      )}
+
+      {/* ── Pricing Recommendation ── */}
+      {agentPricingRec && (
+        <Section icon={<LightbulbOutlinedIcon sx={{ color: PURPLE }} fontSize="small" />} title="Pricing Recommendation" defaultOpen>
+          <Typography variant="body2" sx={{ mb: 2 }}>{agentPricingRec.rationale}</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            COGS Floor: ${agentPricingRec.cogsFloor.toFixed(4)} per task
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: `repeat(${agentPricingRec.tiers.length}, 1fr)` }, gap: 2 }}>
+            {agentPricingRec.tiers.map((tier, i) => (
+              <Paper key={i} variant="outlined" sx={{ p: 2, borderColor: i === 1 ? PURPLE : undefined, borderWidth: i === 1 ? 2 : 1 }}>
+                {i === 1 && (
+                  <Chip label="Recommended" size="small" sx={{ mb: 1, bgcolor: PURPLE, color: '#fff', height: 20, fontSize: 10 }} />
+                )}
+                <Typography variant="subtitle2" fontWeight={700}>{tier.tierName}</Typography>
+                <Typography variant="h6" fontWeight={700} color="primary">
+                  ${tier.price.toFixed(2)}<Typography component="span" variant="caption" color="text.secondary">/{tier.unit}</Typography>
+                </Typography>
+                <Box component="ul" sx={{ pl: 2, mt: 1, mb: 0 }}>
+                  {tier.included.map((item, j) => (
+                    <Typography component="li" key={j} variant="caption">{item}</Typography>
+                  ))}
+                </Box>
+                {tier.limits && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block', fontStyle: 'italic' }}>
+                    {tier.limits}
+                  </Typography>
+                )}
+              </Paper>
+            ))}
+          </Box>
+          {onCopyPriceChainExport && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onCopyPriceChainExport}
+              sx={{ mt: 2, borderColor: PURPLE, color: PURPLE }}
+            >
+              Export to PriceChain (JSON)
+            </Button>
+          )}
+        </Section>
+      )}
     </Box>
   );
 }

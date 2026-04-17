@@ -214,5 +214,178 @@
       "embeddingModelId": "vertex_textembedding_004",
       "vectorDbId": "vertex_vector_search"
     }
+  },
+  {
+    "id": "ae_saas_writing_assistant",
+    "category": "Agent Economics",
+    "name": "SaaS AI Writing Assistant",
+    "description": "Per-seat writing assistant with 3-step chain: router → executor → editor. Direct distribution, 5% churn.",
+    "mode": "agent_economics",
+    "agentInputs": {
+      "pricingModel": "per_seat",
+      "pricePerUnit": 29,
+      "targetGrossMarginPct": 70,
+      "monthlyFixedCosts": 3000,
+      "customerCount": 2000,
+      "tasksPerCustomer": 40,
+      "churnRatePct": 5,
+      "customerAcquisitionCost": 80,
+      "platformId": "direct",
+      "platformTaxPct": 0,
+      "chain": [
+        { "name": "Router", "modelId": "gpt_5_mini", "avgInputTokens": 300, "avgOutputTokens": 50, "callsPerTask": 1 },
+        { "name": "Writer", "modelId": "claude_sonnet_45", "avgInputTokens": 1200, "avgOutputTokens": 800, "callsPerTask": 1 },
+        { "name": "Editor", "modelId": "claude_haiku_45", "avgInputTokens": 900, "avgOutputTokens": 400, "callsPerTask": 1 }
+      ],
+      "cacheHitRate": 0.15,
+      "ragEnabled": false,
+      "embeddingModelId": "vertex_textembedding_004",
+      "vectorDbId": "vertex_vector_search",
+      "documentsIndexed": 0,
+      "retrievalRate": 0,
+      "avgDocTokens": 500,
+      "topK": 5,
+      "embeddingDimensions": 768,
+      "trafficPattern": "steady",
+      "hosting": "cloud_run"
+    }
+  },
+  {
+    "id": "ae_api_code_review",
+    "category": "Agent Economics",
+    "name": "API Code Review Agent",
+    "description": "Per-action code review agent with 2-step chain. Direct B2B sales, enterprise-focused.",
+    "mode": "agent_economics",
+    "agentInputs": {
+      "pricingModel": "per_action",
+      "pricePerUnit": 0.05,
+      "targetGrossMarginPct": 60,
+      "monthlyFixedCosts": 8000,
+      "customerCount": 300,
+      "tasksPerCustomer": 500,
+      "churnRatePct": 3,
+      "customerAcquisitionCost": 500,
+      "platformId": "direct",
+      "platformTaxPct": 0,
+      "chain": [
+        { "name": "Analyzer", "modelId": "claude_sonnet_45", "avgInputTokens": 2000, "avgOutputTokens": 600, "callsPerTask": 1 },
+        { "name": "Reviewer", "modelId": "claude_opus_46", "avgInputTokens": 1500, "avgOutputTokens": 1000, "callsPerTask": 1 }
+      ],
+      "cacheHitRate": 0.2,
+      "ragEnabled": false,
+      "embeddingModelId": "vertex_textembedding_004",
+      "vectorDbId": "vertex_vector_search",
+      "documentsIndexed": 0,
+      "retrievalRate": 0,
+      "avgDocTokens": 500,
+      "topK": 5,
+      "embeddingDimensions": 768,
+      "trafficPattern": "steady",
+      "hosting": "cloud_run"
+    }
+  },
+  {
+    "id": "ae_support_agent_marketplace",
+    "category": "Agent Economics",
+    "name": "Customer Support Agent (OpenAI Store)",
+    "description": "Outcome-based support agent on OpenAI marketplace. 4-step chain with RAG. 30% platform tax.",
+    "mode": "agent_economics",
+    "agentInputs": {
+      "pricingModel": "outcome_based",
+      "pricePerUnit": 0.50,
+      "targetGrossMarginPct": 50,
+      "monthlyFixedCosts": 2000,
+      "customerCount": 800,
+      "tasksPerCustomer": 120,
+      "churnRatePct": 7,
+      "customerAcquisitionCost": 30,
+      "platformId": "openai_marketplace",
+      "platformTaxPct": 30,
+      "chain": [
+        { "name": "Classifier", "modelId": "gpt_5_mini", "avgInputTokens": 400, "avgOutputTokens": 50, "callsPerTask": 1 },
+        { "name": "Retriever", "modelId": "gpt_5_mini", "avgInputTokens": 300, "avgOutputTokens": 100, "callsPerTask": 1 },
+        { "name": "Responder", "modelId": "gpt_5", "avgInputTokens": 1500, "avgOutputTokens": 600, "callsPerTask": 1 },
+        { "name": "Escalation Check", "modelId": "gpt_5_mini", "avgInputTokens": 500, "avgOutputTokens": 50, "callsPerTask": 1 }
+      ],
+      "cacheHitRate": 0.2,
+      "ragEnabled": true,
+      "embeddingModelId": "openai_text_embedding_3_small",
+      "vectorDbId": "pinecone",
+      "documentsIndexed": 50000,
+      "retrievalRate": 0.7,
+      "avgDocTokens": 600,
+      "topK": 5,
+      "embeddingDimensions": 512,
+      "trafficPattern": "burst",
+      "hosting": "cloud_run"
+    }
+  },
+  {
+    "id": "ae_legal_agent_revshare",
+    "category": "Agent Economics",
+    "name": "Revenue-Share Legal Agent",
+    "description": "Legal research agent on Anthropic marketplace. 3-step chain with RAG. 15% rev-share model.",
+    "mode": "agent_economics",
+    "agentInputs": {
+      "pricingModel": "rev_share",
+      "pricePerUnit": 15,
+      "targetGrossMarginPct": 55,
+      "monthlyFixedCosts": 5000,
+      "customerCount": 200,
+      "tasksPerCustomer": 30,
+      "churnRatePct": 4,
+      "customerAcquisitionCost": 400,
+      "platformId": "anthropic_marketplace",
+      "platformTaxPct": 25,
+      "chain": [
+        { "name": "Intake", "modelId": "claude_haiku_45", "avgInputTokens": 600, "avgOutputTokens": 200, "callsPerTask": 1 },
+        { "name": "Research", "modelId": "claude_opus_46", "avgInputTokens": 2500, "avgOutputTokens": 1500, "callsPerTask": 2 },
+        { "name": "Drafting", "modelId": "claude_sonnet_45", "avgInputTokens": 2000, "avgOutputTokens": 1200, "callsPerTask": 1 }
+      ],
+      "cacheHitRate": 0.05,
+      "ragEnabled": true,
+      "embeddingModelId": "vertex_textembedding_004",
+      "vectorDbId": "pgvector",
+      "documentsIndexed": 500000,
+      "retrievalRate": 0.85,
+      "avgDocTokens": 1000,
+      "topK": 8,
+      "embeddingDimensions": 768,
+      "trafficPattern": "steady",
+      "hosting": "gke"
+    }
+  },
+  {
+    "id": "ae_data_extraction_bot",
+    "category": "Agent Economics",
+    "name": "High-Volume Data Extraction Bot",
+    "description": "Per-action data extraction with minimal chain. Ultra-cheap model, 1M+ tasks/month.",
+    "mode": "agent_economics",
+    "agentInputs": {
+      "pricingModel": "per_action",
+      "pricePerUnit": 0.002,
+      "targetGrossMarginPct": 40,
+      "monthlyFixedCosts": 1000,
+      "customerCount": 50,
+      "tasksPerCustomer": 25000,
+      "churnRatePct": 3,
+      "customerAcquisitionCost": 200,
+      "platformId": "direct",
+      "platformTaxPct": 0,
+      "chain": [
+        { "name": "Extractor", "modelId": "gemini_25_flash", "avgInputTokens": 500, "avgOutputTokens": 200, "callsPerTask": 1 }
+      ],
+      "cacheHitRate": 0.3,
+      "ragEnabled": false,
+      "embeddingModelId": "vertex_textembedding_004",
+      "vectorDbId": "vertex_vector_search",
+      "documentsIndexed": 0,
+      "retrievalRate": 0,
+      "avgDocTokens": 500,
+      "topK": 5,
+      "embeddingDimensions": 768,
+      "trafficPattern": "steady",
+      "hosting": "cloud_run"
+    }
   }
 ]

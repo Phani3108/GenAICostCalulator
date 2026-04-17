@@ -27,6 +27,8 @@ import {
   DialogActions,
   TextField,
 } from '@mui/material';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import ToggleButton from '@mui/material/ToggleButton';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
@@ -37,7 +39,13 @@ import HomeIcon from '@mui/icons-material/Home';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ShareIcon from '@mui/icons-material/Share';
-import { SimulationInput, SimulationOutput, Scenario } from '@/lib/cost/schema';
+import {
+  SimulationInput,
+  SimulationOutput,
+  Scenario,
+  SimulatorMode,
+  AgentEconomicsInput,
+} from '@/lib/cost/schema';
 import { simulate } from '@/lib/cost/engine';
 import { getPricing } from '@/lib/cost/pricing';
 import { generateInsights, getTopLever } from '@/lib/cost/insights';
@@ -46,6 +54,19 @@ import { getArchitecture } from '@/lib/cost/architecture';
 import { generateOptimizedScenario, generateExecBrief } from '@/lib/cost/optimize';
 import { generateWarnings } from '@/lib/cost/guardrails';
 import { classifyWorkload } from '@/lib/cost/classification';
+import {
+  simulateAgentTask,
+  calculateUnitEconomics,
+  comparePricingModels,
+  calculatePaybackPeriod,
+  calculateBreakEven,
+  churnSensitivity,
+  projectMarginAtScale,
+  generatePricingRecommendation,
+  generateInvestorNarrative,
+  generatePriceChainExport,
+  generateBusinessWarnings,
+} from '@/lib/cost/agent-economics';
 import { saveScenario } from '@/lib/scenarios/storage';
 import { encodeScenarioToUrl, decodeScenarioFromUrl } from '@/lib/url-state';
 import presets from '@/data/presets.json';
@@ -72,10 +93,46 @@ const DEFAULT_VALUES: SimulationInput = {
   embeddingDimensions: 768,
 };
 
+const DEFAULT_AGENT_VALUES: AgentEconomicsInput = {
+  pricingModel: 'per_seat',
+  pricePerUnit: 29,
+  targetGrossMarginPct: 70,
+  monthlyFixedCosts: 0,
+  customerCount: 1000,
+  tasksPerCustomer: 50,
+  churnRatePct: 5,
+  customerAcquisitionCost: 100,
+  platformId: 'direct',
+  platformTaxPct: 0,
+  chain: [
+    { name: 'Executor', modelId: 'claude_sonnet_45', avgInputTokens: 800, avgOutputTokens: 400, callsPerTask: 1 },
+  ],
+  cacheHitRate: 0.1,
+  ragEnabled: false,
+  embeddingModelId: 'vertex_textembedding_004',
+  vectorDbId: 'vertex_vector_search',
+  documentsIndexed: 0,
+  retrievalRate: 0,
+  avgDocTokens: 500,
+  topK: 5,
+  embeddingDimensions: 768,
+  trafficPattern: 'steady',
+  hosting: 'cloud_run',
+};
+
 export default function SimulatorPage() {
+  const [mode, setMode] = useState<SimulatorMode>('infra_cost');
   const methods = useForm<SimulationInput>({ defaultValues: DEFAULT_VALUES });
   const liveValues = methods.watch();
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Agent economics form state (separate from infra form)
+  const [agentValues, setAgentValues] = useState<AgentEconomicsInput>(DEFAULT_AGENT_VALUES);
+  const [liveAgentValues, setLiveAgentValues] = useState<AgentEconomicsInput>(DEFAULT_AGENT_VALUES);
+  useEffect(() => {
+    const id = setTimeout(() => setAgentValues(liveAgentValues), 250);
+    return () => clearTimeout(id);
+  }, [liveAgentValues]);
 
   // Debounce form values by 250 ms to avoid running 6+ simulations on every keystroke
   const [values, setValues] = useState<SimulationInput>(DEFAULT_VALUES);
@@ -137,12 +194,31 @@ export default function SimulatorPage() {
     }
   }
 
+  // ── Agent economics computed values ──
+  const agentCogs = mode === 'agent_economics' ? (() => { try { return simulateAgentTask(agentValues); } catch { return null; } })() : null;
+  const agentUnitEcon = mode === 'agent_economics' && agentCogs ? (() => { try { return calculateUnitEconomics(agentValues, agentCogs); } catch { return null; } })() : null;
+  const agentPricingComparison = mode === 'agent_economics' ? (() => { try { return comparePricingModels(agentValues); } catch { return []; } })() : [];
+  const agentPayback = mode === 'agent_economics' ? (() => { try { return calculatePaybackPeriod(agentValues); } catch { return null; } })() : null;
+  const agentBreakEven = mode === 'agent_economics' ? (() => { try { return calculateBreakEven(agentValues); } catch { return null; } })() : null;
+  const agentChurnData = mode === 'agent_economics' ? (() => { try { return churnSensitivity(agentValues); } catch { return []; } })() : [];
+  const agentPricingRec = mode === 'agent_economics' ? (() => { try { return generatePricingRecommendation(agentValues); } catch { return null; } })() : null;
+  const agentBusinessWarnings = mode === 'agent_economics' ? (() => { try { return generateBusinessWarnings(agentValues); } catch { return []; } })() : [];
+
   // ── Handlers ──
 
   const handlePresetChange = useCallback(
     (presetId: string) => {
-      const preset = presets.find((p) => p.id === presetId);
-      if (preset) methods.reset(preset.inputs as unknown as SimulationInput);
+      const preset = presets.find((p) => p.id === presetId) as Record<string, unknown> | undefined;
+      if (!preset) return;
+      if (preset.mode === 'agent_economics' && preset.agentInputs) {
+        setMode('agent_economics');
+        const ai = preset.agentInputs as unknown as AgentEconomicsInput;
+        setLiveAgentValues(ai);
+        setAgentValues(ai);
+      } else if (preset.inputs) {
+        setMode('infra_cost');
+        methods.reset(preset.inputs as unknown as SimulationInput);
+      }
     },
     [methods],
   );
@@ -278,6 +354,15 @@ export default function SimulatorPage() {
   }, [values]);
 
   const handleCopyExecBrief = useCallback(() => {
+    if (mode === 'agent_economics') {
+      const narrative = generateInvestorNarrative(agentValues);
+      navigator.clipboard.writeText(narrative).then(() => {
+        setSnackbar({ open: true, message: 'Investor narrative copied' });
+      }).catch(() => {
+        setSnackbar({ open: true, message: 'Failed to copy' });
+      });
+      return;
+    }
     if (!result) return;
     const brief = generateExecBrief(values, result, insights);
     navigator.clipboard.writeText(brief).then(() => {
@@ -293,7 +378,17 @@ export default function SimulatorPage() {
       document.body.removeChild(el);
       setSnackbar({ open: true, message: 'Exec brief copied' });
     });
-  }, [values, result, insights]);
+  }, [mode, agentValues, values, result, insights]);
+
+  const handleCopyPriceChainExport = useCallback(() => {
+    const exp = generatePriceChainExport(agentValues);
+    const json = JSON.stringify(exp, null, 2);
+    navigator.clipboard.writeText(json).then(() => {
+      setSnackbar({ open: true, message: 'PriceChain export copied' });
+    }).catch(() => {
+      setSnackbar({ open: true, message: 'Failed to copy' });
+    });
+  }, [agentValues]);
 
   return (
     <Box
@@ -317,10 +412,32 @@ export default function SimulatorPage() {
               GenAI Cost Simulator
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.85, display: { xs: 'none', sm: 'block' } }}>
-              Enterprise planning tool for LLM-powered applications
+              {mode === 'agent_economics'
+                ? 'Agent Unit Economics & Pricing'
+                : 'Enterprise planning tool for LLM-powered applications'}
             </Typography>
           </Box>
           <Box sx={{ flexGrow: 1 }} />
+          <ToggleButtonGroup
+            value={mode}
+            exclusive
+            onChange={(_, v) => { if (v) setMode(v); }}
+            size="small"
+            sx={{
+              mr: 2,
+              '& .MuiToggleButton-root': {
+                color: 'rgba(255,255,255,0.7)',
+                borderColor: 'rgba(255,255,255,0.3)',
+                fontSize: 12,
+                px: 1.5,
+                py: 0.25,
+                '&.Mui-selected': { color: '#fff', bgcolor: 'rgba(255,255,255,0.15)' },
+              },
+            }}
+          >
+            <ToggleButton value="infra_cost">Infra Cost</ToggleButton>
+            <ToggleButton value="agent_economics">Agent Economics</ToggleButton>
+          </ToggleButtonGroup>
           <Button
             color="inherit"
             size="small"
@@ -457,9 +574,17 @@ export default function SimulatorPage() {
         }}
       >
         <Box sx={{ width: { xs: '100%', lg: '36%' }, flexShrink: 0 }}>
-          <FormProvider {...methods}>
-            <InputPanel />
-          </FormProvider>
+          {mode === 'infra_cost' ? (
+            <FormProvider {...methods}>
+              <InputPanel mode={mode} />
+            </FormProvider>
+          ) : (
+            <InputPanel
+              mode={mode}
+              agentValues={liveAgentValues}
+              onAgentValuesChange={setLiveAgentValues}
+            />
+          )}
         </Box>
         <Box
           ref={resultsRef}
@@ -473,6 +598,7 @@ export default function SimulatorPage() {
           }}
         >
           <ResultsPanel
+            mode={mode}
             input={values}
             result={result}
             insights={insights}
@@ -486,6 +612,16 @@ export default function SimulatorPage() {
             compareMode={compareMode}
             onLoadCompare={(s) => setCompareScenario(s)}
             onAutoOptimize={handleAutoOptimize}
+            agentCogs={agentCogs}
+            agentUnitEcon={agentUnitEcon}
+            agentPricingComparison={agentPricingComparison}
+            agentPayback={agentPayback}
+            agentBreakEven={agentBreakEven}
+            agentChurnData={agentChurnData}
+            agentPricingRec={agentPricingRec}
+            agentBusinessWarnings={agentBusinessWarnings}
+            agentInput={agentValues}
+            onCopyPriceChainExport={handleCopyPriceChainExport}
           />
         </Box>
       </Box>

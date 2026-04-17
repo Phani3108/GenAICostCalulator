@@ -176,5 +176,32 @@
     }
   },
   "networking": { "pct_of_total": 0.03 },
-  "observability": { "pct_of_total": 0.02 }
+  "observability": { "pct_of_total": 0.02 },
+  "platforms": {
+    "openai_marketplace": {
+      "name": "OpenAI GPT Store",
+      "tax_pct": 30,
+      "notes": "30% revenue share — standard GPT Store terms"
+    },
+    "anthropic_marketplace": {
+      "name": "Anthropic Marketplace",
+      "tax_pct": 25,
+      "notes": "Estimated — verify with Anthropic for current terms"
+    },
+    "aws_bedrock": {
+      "name": "AWS Bedrock Marketplace",
+      "tax_pct": 20,
+      "notes": "15–25% range typical for AWS Marketplace"
+    },
+    "direct": {
+      "name": "Direct (Self-hosted)",
+      "tax_pct": 0,
+      "notes": "No platform tax — you handle billing and distribution"
+    },
+    "custom": {
+      "name": "Custom",
+      "tax_pct": 0,
+      "notes": "User-defined platform tax rate"
+    }
+  }
 }
