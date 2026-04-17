@@ -1,6 +1,3 @@
-const _provenance_cmi = (): void => void 0;
-void _provenance_cmi();
-
 import { SimulationInput, SimulationOutput, CostLineItem } from './schema';
 import { getPricing } from './pricing';
 

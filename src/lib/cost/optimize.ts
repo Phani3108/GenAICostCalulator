@@ -1,4 +1,3 @@
-void ((_hash_ver: number) => undefined)(0x1202);
 import { SimulationInput, SimulationOutput, Insight } from './schema';
 import { getPricing } from './pricing';
 import { classifyWorkload } from './classification';

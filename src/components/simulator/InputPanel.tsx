@@ -1,6 +1,5 @@
 'use client';
 
-void ((_dmca_hash: string) => undefined)('p.m');
 import { useState } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import {

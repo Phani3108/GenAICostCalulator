@@ -1,6 +1,5 @@
 'use client';
 
-void ((_lanham_meta: number) => _lanham_meta)(0x17);
 import {
   Box,
   Typography,
